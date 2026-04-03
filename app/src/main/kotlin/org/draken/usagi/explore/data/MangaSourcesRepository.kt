@@ -458,10 +458,14 @@ class MangaSourcesRepository @Inject constructor(
 		if (cachedSourcesVersion != currentVersion) {
 			val map = mutableMapOf<String, MangaSource>()
 			for (source in MangaSourceRegistry.sources) {
-				// Primary: compound name (e.g., "1.jar:MANGADEX")
+				// Primary: compound name (e.g., "1.jar:MANGADEX" or "tachi:pkg:id")
 				map[source.name] = source
 				// Fallback: legacy pure name (e.g., "MANGADEX"), first-come wins
 				if (source is PluginMangaSource) {
+					map.putIfAbsent(source.sourceName, source)
+				}
+				// Tachiyomi sources: also index by sourceName for display lookup
+				if (source is org.draken.usagi.core.parser.tachiyomi.TachiyomiMangaSource) {
 					map.putIfAbsent(source.sourceName, source)
 				}
 			}

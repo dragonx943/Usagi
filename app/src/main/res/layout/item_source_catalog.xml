@@ -61,6 +61,28 @@
 		android:layout_marginVertical="@dimen/margin_small"
 		android:background="?colorOutline" />
 
+	<ProgressBar
+		android:id="@+id/progressBar"
+		style="?android:attr/progressBarStyleSmall"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:padding="@dimen/margin_normal"
+		android:visibility="gone"
+		tools:visibility="visible" />
+
+	<ImageButton
+		android:id="@+id/imageView_download"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:background="?selectableItemBackgroundBorderless"
+		android:contentDescription="@string/download_started"
+		android:padding="@dimen/margin_normal"
+		android:scaleType="center"
+		android:src="@drawable/ic_download"
+		android:visibility="gone"
+		android:tooltipText="@string/download_started"
+		tools:visibility="visible" />
+
 	<ImageButton
 		android:id="@+id/imageView_add"
 		android:layout_width="wrap_content"

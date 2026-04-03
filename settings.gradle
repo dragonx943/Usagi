@@ -29,4 +29,6 @@ dependencyResolutionManagement {
 }
 
 include ':app'
+include ':extensions-lib'
+project(':extensions-lib').projectDir = new File('../extensions-lib/library')
 rootProject.name = "Usagi"

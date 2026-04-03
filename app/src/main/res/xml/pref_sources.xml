@@ -26,9 +26,21 @@
         android:title="@string/load_from_jar"
         android:summary="@string/load_from_jar_summary" />
 
+    <Preference
+        android:key="add_extension_repo"
+        android:persistent="false"
+        android:title="@string/add_extension_repo"
+        android:summary="@string/add_extension_repo_summary" />
+
+    <PreferenceCategory
+        android:key="extension_repos_category"
+        android:title="@string/tachiyomi_extension_repos" />
+
     <PreferenceCategory
         android:key="plugins_category"
         android:title="@string/installed_plugin" />
+
+
 
     <SwitchPreferenceCompat
         android:defaultValue="false"

@@ -940,4 +940,25 @@
     <string name="missing_in_plugin">Source missing in plugin: %1$s</string>
     <string name="loaded_null">Plugin loaded as null</string>
     <string name="no_compatible_method">No compatible method found: %1$s(%2$s)</string>
+	<!-- Tachiyomi extensions -->
+	<string name="tachiyomi_extension_repos">Extension repos</string>
+	<string name="add_extension_repo">Add extension repo</string>
+	<string name="add_extension_repo_summary">Add a Tachiyomi-compatible extension repository URL</string>
+	<string name="extension_repo_url_hint">Repository URL</string>
+	<string name="extension_repo_added">Extension repo added</string>
+	<string name="extension_repo_removed">Extension repo removed</string>
+	<string name="extension_repo_already_exists">This repo URL already exists</string>
+	<string name="tachiyomi_extensions_category">Tachiyomi extensions</string>
+	<string name="no_extension_repos">No extension repos configured</string>
+	<string name="no_extension_repos_summary">Add an extension repo above to browse and install extensions</string>
+	<string name="installing_extension">Installing extension…</string>
+	<string name="extension_installed">Extension installed successfully</string>
+	<string name="extension_install_failed">Failed to install extension</string>
+	<string name="extension_uninstalled">Extension uninstalled</string>
+	<string name="confirm_delete_extension">Are you sure you want to uninstall %1$s?</string>
+	<string name="delete_extension">Uninstall extension</string>
+	<string name="fetching_extensions">Fetching extensions…</string>
+	<string name="fetch_extensions_failed">Failed to fetch extension list</string>
+	<string name="tap_to_uninstall_extension">Tap to uninstall this extension</string>
+	<string name="confirm_remove_repo">Remove this extension repo?</string>
 </resources>

@@ -173,6 +173,10 @@ dependencies {
 
 	implementation libs.conscrypt.android
 
+	// Tachiyomi extension support
+	implementation project(':extensions-lib')
+	implementation libs.rxjava
+
 	debugImplementation libs.leakcanary.android
 	debugImplementation libs.workinspector
 

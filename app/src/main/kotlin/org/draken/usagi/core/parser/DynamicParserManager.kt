@@ -5,6 +5,11 @@ import dalvik.system.DexClassLoader
 import org.draken.usagi.R
 import org.draken.usagi.core.model.MangaSourceRegistry
 import org.draken.usagi.core.model.PluginMangaSource
+import org.draken.usagi.core.parser.tachiyomi.TachiyomiExtensionLoader
+import org.draken.usagi.core.parser.tachiyomi.TachiyomiMangaSource
+import org.draken.usagi.core.parser.tachiyomi.TachiyomiRepoManager
+import org.draken.usagi.core.parser.tachiyomi.TachiyomiSourceBridge
+import org.draken.usagi.core.prefs.SourceSettings
 import org.koitharu.kotatsu.parsers.MangaLoaderContext
 import org.koitharu.kotatsu.parsers.MangaParser
 import org.koitharu.kotatsu.parsers.model.MangaSource
@@ -49,6 +54,7 @@ object DynamicParserManager {
     private val classLoaders = mutableMapOf<String, ClassLoader>()
     private val newParserMethods = mutableMapOf<String, Method>()
     private val methodCache = ConcurrentHashMap<Pair<Method, Class<*>>, Method>()
+    private val tachiyomiBridges = ConcurrentHashMap<Long, TachiyomiSourceBridge>()
 
     @Throws(Exception::class)
     fun loadParsersFromDirectory(context: Context, pluginDir: File) {
@@ -81,9 +87,12 @@ object DynamicParserManager {
         newParserMethods.clear()
         methodCache.clear()
         classLoaders.clear()
+        tachiyomiBridges.clear()
         MangaSourceRegistry.sources.addAll(sources)
         newParserMethods.putAll(methods)
         classLoaders.putAll(loaders)
+        // Also load Tachiyomi extensions
+        loadTachiyomiExtensions(context)
         MangaSourceRegistry.incrementVersion()
         MangaSourceRegistry.updates.tryEmit(Unit)
     }
@@ -98,6 +107,23 @@ object DynamicParserManager {
         PluginFileLoader.pluginsDir(context).listFiles { it.extension == "jar" }?.map { it.name } ?: emptyList()
 
     fun createParser(source: MangaSource, loaderContext: MangaLoaderContext, appContext: Context): MangaParser {
+        // Check for Tachiyomi source first
+        if (source is TachiyomiMangaSource) {
+            return tachiyomiBridges[source.sourceId]
+                ?: throw IllegalStateException(
+                    appContext.getString(R.string.plugin_not_found, source.sourceName)
+                )
+        }
+        // Also check by name for restored sources
+        val tachiByName = MangaSourceRegistry.sources.firstOrNull {
+            it is TachiyomiMangaSource && it.name == source.name
+        } as? TachiyomiMangaSource
+        if (tachiByName != null) {
+            return tachiyomiBridges[tachiByName.sourceId]
+                ?: throw IllegalStateException(
+                    appContext.getString(R.string.plugin_not_found, tachiByName.sourceName)
+                )
+        }
         val ctx = appContext.applicationContext
         val ps = resolvePluginSource(source)
             ?: throw IllegalArgumentException(ctx.getString(R.string.plugin_not_found, source.name))
@@ -165,5 +191,47 @@ object DynamicParserManager {
         if (a.size != b.size) return false
         for (i in a.indices) if (a[i].name != b[i].name) return false
         return true
+    }
+
+    // ========== Tachiyomi extension loading ==========
+
+    fun loadTachiyomiExtensions(context: Context) {
+        val extDir = TachiyomiExtensionLoader.extensionsDir(context)
+        val apkFiles = extDir.listFiles { f -> f.extension == "apk" } ?: return
+        for (apk in apkFiles) {
+            try {
+                val result = TachiyomiExtensionLoader.loadExtension(context, apk) ?: continue
+                for (catalogueSource in result.sources) {
+                    val tachiSource = TachiyomiMangaSource(
+                        sourceId = catalogueSource.id,
+                        sourceName = catalogueSource.name,
+                        sourceLang = catalogueSource.lang,
+                        pkgName = result.pkgName,
+                        apkName = apk.name,
+                        isNsfw = result.isNsfw,
+                    )
+                    val bridge = TachiyomiSourceBridge(
+                        catalogueSource = catalogueSource,
+                        mangaSource = tachiSource,
+                        sourceConfig = SourceSettings(context, tachiSource),
+                    )
+                    MangaSourceRegistry.sources.add(tachiSource)
+                    tachiyomiBridges[catalogueSource.id] = bridge
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("DynamicParserManager", "Failed to load Tachiyomi extension: ${apk.name}", e)
+            }
+        }
+    }
+
+    fun deleteTachiyomiExtension(context: Context, apkName: String) {
+        TachiyomiRepoManager.deleteExtension(context, apkName)
+        // Reload everything
+        val pluginsDir = PluginFileLoader.pluginsDir(context)
+        loadParsersFromDirectory(context, pluginsDir)
+    }
+
+    fun getInstalledTachiyomiExtensions(context: Context): List<String> {
+        return TachiyomiRepoManager.getInstalledExtensionApks(context)
     }
 }

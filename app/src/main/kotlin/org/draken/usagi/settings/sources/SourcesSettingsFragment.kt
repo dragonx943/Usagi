@@ -23,6 +23,7 @@ import org.draken.usagi.R
 import org.draken.usagi.core.nav.router
 import org.draken.usagi.core.parser.DynamicParserManager
 import org.draken.usagi.core.parser.PluginFileLoader
+import org.draken.usagi.core.parser.tachiyomi.TachiyomiRepoManager
 import org.draken.usagi.core.prefs.AppSettings
 import org.draken.usagi.core.prefs.TriStateOption
 import org.draken.usagi.core.ui.BasePreferenceFragment
@@ -87,6 +88,7 @@ class SourcesSettingsFragment : BasePreferenceFragment(R.string.remote_sources),
 		}
 		updateEnableAllDependencies()
 		updatePluginsList()
+		updateExtensionReposList()
 		settings.subscribe(this)
 	}
 
@@ -110,6 +112,11 @@ class SourcesSettingsFragment : BasePreferenceFragment(R.string.remote_sources),
 			true
 		}
 
+		"add_extension_repo" -> {
+			showAddRepoDialog()
+			true
+		}
+
 		AppSettings.KEY_HANDLE_LINKS -> {
 			viewModel.setLinksEnabled((preference as TwoStatePreference).isChecked)
 			true
@@ -127,6 +134,8 @@ class SourcesSettingsFragment : BasePreferenceFragment(R.string.remote_sources),
 	private fun updateEnableAllDependencies() {
 		findPreference<Preference>(AppSettings.KEY_SOURCES_CATALOG)?.isEnabled = !settings.isAllSourcesEnabled
 	}
+
+	// ========== Plugins (Kotatsu JAR) ==========
 
 	private fun updatePluginsList() {
 		val category = findPreference<PreferenceCategory>("plugins_category") ?: return
@@ -167,6 +176,81 @@ class SourcesSettingsFragment : BasePreferenceFragment(R.string.remote_sources),
 			}
 		}
 	}
+
+	// ========== Extension Repos ==========
+
+	private fun showAddRepoDialog() {
+		val themedCtx = requireContext()
+		lateinit var editText: android.widget.EditText
+		buildAlertDialog(themedCtx) {
+			editText = setEditText(InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI, singleLine = true)
+			editText.hint = themedCtx.getString(R.string.extension_repo_url_hint)
+			setTitle(R.string.add_extension_repo)
+			setNegativeButton(android.R.string.cancel, null)
+			setPositiveButton(android.R.string.ok) { _, _ ->
+				val url = editText.text.toString().trim()
+				if (url.isNotEmpty()) {
+					addExtensionRepo(url)
+				}
+			}
+		}.show()
+	}
+
+	private fun addExtensionRepo(url: String) {
+		val appCtx = requireContext().applicationContext
+		val existing = TachiyomiRepoManager.getRepoUrls(appCtx)
+		val normalized = url.trim().let { u ->
+			var result = u
+			if (result.endsWith("index.min.json")) result = result.removeSuffix("index.min.json")
+			if (!result.endsWith("/")) result += "/"
+			result
+		}
+		if (existing.contains(normalized)) {
+			Snackbar.make(listView, R.string.extension_repo_already_exists, Snackbar.LENGTH_SHORT).show()
+			return
+		}
+		TachiyomiRepoManager.addRepoUrl(appCtx, url)
+		updateExtensionReposList()
+		Snackbar.make(listView, R.string.extension_repo_added, Snackbar.LENGTH_SHORT).show()
+	}
+
+	private fun updateExtensionReposList() {
+		val category = findPreference<PreferenceCategory>("extension_repos_category") ?: return
+		category.removeAll()
+
+		val repos = TachiyomiRepoManager.getRepoUrls(requireContext())
+		if (repos.isEmpty()) {
+			category.addPreference(Preference(requireContext()).apply {
+				title = context.getString(R.string.no_extension_repos)
+				summary = context.getString(R.string.no_extension_repos_summary)
+				isSelectable = false
+			})
+		} else {
+			repos.forEach { repoUrl ->
+				category.addPreference(Preference(requireContext()).apply {
+					title = repoUrl.removeSuffix("/").substringAfterLast("/")
+					summary = repoUrl
+					setOnPreferenceClickListener {
+						buildAlertDialog(requireContext()) {
+							setTitle(R.string.delete_extension)
+							setMessage(context.getString(R.string.confirm_remove_repo))
+							setNegativeButton(android.R.string.cancel, null)
+							setPositiveButton(R.string.delete) { _, _ ->
+								TachiyomiRepoManager.removeRepoUrl(requireContext().applicationContext, repoUrl)
+								updateExtensionReposList()
+								Snackbar.make(listView, R.string.extension_repo_removed, Snackbar.LENGTH_SHORT).show()
+							}
+						}.show()
+						true
+					}
+				})
+			}
+		}
+	}
+
+
+
+	// ========== Import JAR ==========
 
 	private fun importJar(uri: android.net.Uri) {
 		val appCtx = requireContext().applicationContext

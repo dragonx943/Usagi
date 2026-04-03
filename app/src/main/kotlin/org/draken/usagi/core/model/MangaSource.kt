@@ -74,6 +74,19 @@ fun MangaSource(name: String?): MangaSource {
 	MangaSourceRegistry.sources.forEach {
 		if (it is PluginMangaSource && it.sourceName == name) return it
 	}
+	// Tachiyomi sources: match by tachi:pkg:id name or by sourceName
+	if (name.startsWith("tachi:")) {
+		MangaSourceRegistry.sources.forEach {
+			if (it is org.draken.usagi.core.parser.tachiyomi.TachiyomiMangaSource && it.name == name) return it
+		}
+		// Try matching by just sourceId
+		val sourceId = name.substringAfterLast(':').toLongOrNull()
+		if (sourceId != null) {
+			MangaSourceRegistry.sources.forEach {
+				if (it is org.draken.usagi.core.parser.tachiyomi.TachiyomiMangaSource && it.sourceId == sourceId) return it
+			}
+		}
+	}
     // Backward compatibility for loaded database items saved as '1.jar:MANGADEX'
 	if (name.contains(':')) {
         val cleanName = name.substringAfter(":")
@@ -117,6 +130,7 @@ val ContentType.titleResId
 tailrec fun MangaSource.unwrap(): MangaSource = when (this) {
     is MangaSourceInfo -> mangaSource.unwrap()
     is PluginMangaSource -> delegate.unwrap()
+    is org.draken.usagi.core.parser.tachiyomi.TachiyomiMangaSource -> this
     else -> this
 }
 
@@ -138,9 +152,18 @@ fun MangaSource.getSummary(context: Context): String? {
 		is MangaSourceInfo -> mangaSource as? PluginMangaSource
 		else -> null
 	}
-	return if (pluginSource != null && baseSummary != null) {
-		"$baseSummary • ${pluginSource.jarName}"
-	} else pluginSource?.jarName ?: baseSummary
+	val tachiSource = when (this) {
+		is org.draken.usagi.core.parser.tachiyomi.TachiyomiMangaSource -> this
+		is MangaSourceInfo -> mangaSource as? org.draken.usagi.core.parser.tachiyomi.TachiyomiMangaSource
+		else -> null
+	}
+	return when {
+		tachiSource != null && baseSummary != null -> "$baseSummary • ${tachiSource.apkName}"
+		tachiSource != null -> tachiSource.apkName
+		pluginSource != null && baseSummary != null -> "$baseSummary • ${pluginSource.jarName}"
+		pluginSource != null -> pluginSource.jarName
+		else -> baseSummary
+	}
 }
 
 fun MangaSource.getTitle(context: Context): String = when {

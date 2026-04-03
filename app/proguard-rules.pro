@@ -34,3 +34,7 @@
 # For core-exts dependency, optimization is needed if possible
 -keep class org.koitharu.kotatsu.parsers.** { *; }
 -keep class * extends org.koitharu.kotatsu.parsers.MangaLoaderContext { *; }
+
+# Tachiyomi extension support
+-keep class eu.kanade.tachiyomi.** { *; }
+-keep class org.draken.usagi.core.parser.tachiyomi.** { *; }

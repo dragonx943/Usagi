@@ -18,7 +18,6 @@ import org.draken.usagi.R
 import org.draken.usagi.core.model.titleResId
 import org.draken.usagi.core.nav.router
 import org.draken.usagi.core.ui.BaseActivity
-import org.draken.usagi.core.ui.list.OnListItemClickListener
 import org.draken.usagi.core.ui.util.FadingAppbarMediator
 import org.draken.usagi.core.ui.util.ReversibleActionObserver
 import org.draken.usagi.core.ui.widgets.ChipsView
@@ -35,7 +34,7 @@ import org.koitharu.kotatsu.parsers.model.ContentType
 
 @AndroidEntryPoint
 class SourcesCatalogActivity : BaseActivity<ActivitySourcesCatalogBinding>(),
-	OnListItemClickListener<SourceCatalogItem.Source>,
+	SourceCatalogListener,
 	AppBarOwner,
 	MenuItem.OnActionExpandListener,
 	ChipsView.OnChipClickListener {
@@ -98,13 +97,17 @@ class SourcesCatalogActivity : BaseActivity<ActivitySourcesCatalogBinding>(),
 		}
 	}
 
-	override fun onItemClick(item: SourceCatalogItem.Source, view: View) {
+	// SourceCatalogListener
+	override fun onSourceClick(item: SourceCatalogItem.Source) {
 		router.openList(item.source, null, null)
 	}
 
-	override fun onItemLongClick(item: SourceCatalogItem.Source, view: View): Boolean {
+	override fun onAddSource(item: SourceCatalogItem.Source) {
 		viewModel.addSource(item.source)
-		return false
+	}
+
+	override fun onDownloadExtension(item: SourceCatalogItem.TachiyomiExtension) {
+		viewModel.downloadExtension(item.info)
 	}
 
 	override fun onMenuItemActionExpand(item: MenuItem): Boolean {

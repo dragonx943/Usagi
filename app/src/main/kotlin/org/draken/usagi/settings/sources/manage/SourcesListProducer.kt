@@ -16,6 +16,7 @@ import kotlinx.coroutines.launch
 import org.draken.usagi.R
 import org.draken.usagi.core.LocalizedAppContext
 import org.draken.usagi.core.db.TABLE_SOURCES
+import org.draken.usagi.core.model.MangaSourceRegistry
 import org.draken.usagi.core.model.getTitle
 import org.draken.usagi.core.model.isNsfw
 import org.draken.usagi.core.model.unwrap
@@ -51,6 +52,11 @@ class SourcesListProducer @Inject constructor(
 						it == AppSettings.KEY_SOURCES_HIDE_BROKEN
 			}
 			.flowOn(Dispatchers.Default)
+			.onEach { onInvalidated(emptySet()) }
+			.launchIn(scope)
+
+		// Rebuild when new sources are loaded (e.g. after Tachiyomi extension install)
+		MangaSourceRegistry.updates
 			.onEach { onInvalidated(emptySet()) }
 			.launchIn(scope)
 	}
