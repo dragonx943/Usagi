@@ -7,7 +7,6 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
-import androidx.room.Upsert
 import org.draken.usagi.core.db.entity.MangaEntity
 import org.draken.usagi.core.db.entity.MangaTagsEntity
 import org.draken.usagi.core.db.entity.MangaWithTags
@@ -48,8 +47,10 @@ abstract class MangaDao {
 	@Query("SELECT * FROM manga WHERE (title LIKE :query OR alt_title LIKE :query) AND source = :source AND manga_id IN (SELECT manga_id FROM favourites UNION SELECT manga_id FROM history) LIMIT :limit")
 	abstract suspend fun searchByTitle(query: String, source: String, limit: Int): List<MangaWithTags>
 
-	@Upsert
-	protected abstract suspend fun upsert(manga: MangaEntity)
+	@Insert(onConflict = OnConflictStrategy.IGNORE)
+	protected abstract suspend fun insert(manga: MangaEntity): Long
+
+	open suspend fun upsert(manga: MangaEntity) = update(manga).takeIf { it == 0 }?.let { insert(manga) }
 
 	@Update(onConflict = OnConflictStrategy.IGNORE)
 	abstract suspend fun update(manga: MangaEntity): Int
@@ -66,7 +67,7 @@ abstract class MangaDao {
 
 	@Query(
 		"""
-		DELETE FROM manga WHERE NOT EXISTS(SELECT * FROM history WHERE history.manga_id == manga.manga_id) 
+		DELETE FROM manga WHERE NOT EXISTS(SELECT * FROM history WHERE history.manga_id == manga.manga_id)
 			AND NOT EXISTS(SELECT * FROM favourites WHERE favourites.manga_id == manga.manga_id)
 			AND NOT EXISTS(SELECT * FROM bookmarks WHERE bookmarks.manga_id == manga.manga_id)
 			AND NOT EXISTS(SELECT * FROM suggestions WHERE suggestions.manga_id == manga.manga_id)
